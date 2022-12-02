@@ -15,10 +15,12 @@ if DEBUG:
 
 DATA_DIR = "dataset/"
 TEST_DIR = "test/"
+DATA_TEST = "data_test/"
 TEST_DATA_FILENAME = f"{DATA_DIR}t10k-images-idx3-ubyte"
 TRAIN_DATA_FILENAME = f"{DATA_DIR}train-images-idx3-ubyte"
 TEST_LABELS_FILENAME = f"{DATA_DIR}t10k-labels-idx1-ubyte"
 TRAIN_LABELS_FILENAME = f"{DATA_DIR}train-labels-idx1-ubyte"
+
 
 
 def bytes_to_int(byte):
@@ -54,7 +56,7 @@ def read_labels(filename, number_max_labels=None):
         if number_max_labels:
             number_labels = number_max_labels
         for lables_idx in range(number_labels):
-            label = f.read(1)
+            label = bytes_to_int(f.read(1))
             labels.append(label)
     return labels
 
@@ -92,7 +94,7 @@ def knn(X_train, y_train, X_test, k=3): # need to return y_test
             pair[0] for pair in sorted(enumerate(training_distances), key=lambda x: x[1])
         ]
         candidates = [
-            bytes_to_int(y_train[idx]) for idx in sorted_distance_indices[:k]
+            y_train[idx] for idx in sorted_distance_indices[:k]
         ]
         top_candidate = get_most_frequent_element(candidates)
         y_pred.append(top_candidate)
@@ -100,24 +102,26 @@ def knn(X_train, y_train, X_test, k=3): # need to return y_test
 
 
 def main():
-    X_train = read_images(TRAIN_DATA_FILENAME, 1000)
-    y_train = read_labels(TRAIN_LABELS_FILENAME, 1000)
-    X_test = read_images(TEST_DATA_FILENAME, 5)
-    y_test = read_labels(TEST_LABELS_FILENAME, 5)
+    X_train = read_images(TRAIN_DATA_FILENAME, 10000)
+    y_train = read_labels(TRAIN_LABELS_FILENAME, 10000)
+    X_test = read_images(TEST_DATA_FILENAME, 200)
+    y_test = read_labels(TEST_LABELS_FILENAME, 200)
 
-    for idx, test_sample in enumerate(X_test):
-        write_image(test_sample, f"{TEST_DIR}{idx}.png")
-    
+    if DEBUG:
+        for idx, test_sample in enumerate(X_test):
+            write_image(test_sample, f"{TEST_DIR}{idx}.png")
+        X_test = [read_image(f"{DATA_TEST}1.png")]
+        y_test = [3]
     X_train = extract_features(X_train)
     X_test = extract_features(X_test)
-    y_pred = knn(X_train, y_train, X_test, 3)
+    y_pred = knn(X_train, y_train, X_test, 5)
 
-    accuracy = sum([int(y_pred_i == bytes_to_int(y_test_i)) for y_pred_i, y_test_i in zip(y_pred, y_test)]) / len(y_test)
+    accuracy = sum([int(y_pred_i == y_test_i) for y_pred_i, y_test_i in zip(y_pred, y_test)]) / len(y_test)
 
-    print(y_pred)
-    print(accuracy)
-
+    print(f"Predicted labels: {y_pred}")
+    print(f"Accuracy: {accuracy * 100}%")
 
 
 if __name__ == "__main__":
+    DEBUG=False
     main()
